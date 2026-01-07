@@ -5,6 +5,13 @@ export const FALLBACK_TRIGGER = "DIRECIONAR_WHATSAPP_AGORA";
 export const FALLBACK_MESSAGE = "Entendi perfeitamente. Como essa é uma questão técnica que envolve orçamentos específicos e logística, vou te encaminhar agora mesmo para o WhatsApp da SJM Betoneiras para um atendimento personalizado.";
 
 export const getAIResponse = async (userMessage: string, hasWhatsApp: boolean = false) => {
+  const apiKey = process.env.API_KEY || "";
+  
+  if (!apiKey) {
+    console.warn("API_KEY não encontrada no frontend. Usando resposta padrão.");
+    return "Olá! Sou o consultor da SJM. Para te passar valores exatos e prazos, poderia me informar seu WhatsApp com DDD?";
+  }
+
   const systemInstruction = `
     VOCÊ É O CONSULTOR ESPECIALISTA DA SJM BETONEIRAS.
     SEU OBJETIVO: Vender Betoneiras e Máquinas Poedeiras de Blocos e capturar o WhatsApp do cliente.
@@ -21,7 +28,7 @@ export const getAIResponse = async (userMessage: string, hasWhatsApp: boolean = 
   `;
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: userMessage,
@@ -33,6 +40,7 @@ export const getAIResponse = async (userMessage: string, hasWhatsApp: boolean = 
 
     return response.text || "Poderia me informar seu WhatsApp para conversarmos melhor?";
   } catch (error) {
+    console.error("Erro Gemini:", error);
     return `${FALLBACK_TRIGGER}: ${FALLBACK_MESSAGE}`;
   }
 };
