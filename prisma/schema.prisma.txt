@@ -72,6 +72,6 @@ model Marketing {
 model Training {
   id             String   @id @default(cuid())
   activeScript   String?  // Roteiro se o lead ficar quieto
-  topics         Json?    // Array de tópicos FAQ
-  mediaUrls      Json?    // Array de URLs de fotos/vídeos de suporte
+  topics         String?  // Armazenado como JSON stringified (SQLite compat)
+  mediaUrls      String?  // Armazenado como JSON stringified (SQLite compat)
 }

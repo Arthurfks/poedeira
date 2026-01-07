@@ -17,14 +17,22 @@ const PORT = process.env.PORT || 3001;
 const INFINITE_PAY_API_URL = 'https://api.cloudwalk.io/v1/checkout';
 
 /**
- * Rota para Gerar Link de Checkout Real via API InfinitePay
- * Seguindo: https://www.infinitepay.io/checkout#codeSetupBlock
+ * Health Check para monitoramento PM2
+ */
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', uptime: process.uptime() });
+});
+
+/**
+ * Rota para Gerar Link de Checkout Real
  */
 app.post('/api/checkout/generate-link', async (req, res) => {
   try {
     const { lead, product, paymentMethod, amountInCents, orderId } = req.body;
 
-    // 1. Criar ou Atualizar o Lead no Banco
+    console.log(`[CHECKOUT] Iniciando pedido ${orderId} para ${lead.name}`);
+
+    // 1. Persistência do Lead
     const dbLead = await prisma.lead.upsert({
       where: { phone: lead.phone },
       update: { name: lead.name },
@@ -35,7 +43,7 @@ app.post('/api/checkout/generate-link', async (req, res) => {
       }
     });
 
-    // 2. Salvar a Ordem no Banco antes de enviar para InfinitePay
+    // 2. Persistência da Ordem
     const order = await prisma.order.create({
       data: {
         externalId: orderId,
@@ -49,18 +57,24 @@ app.post('/api/checkout/generate-link', async (req, res) => {
       }
     });
 
-    // 3. Montagem do Payload conforme documentação InfinitePay
+    // 3. Integração InfinitePay
+    const token = process.env.INFINITE_PAY_TOKEN;
+    
+    if (!token || token === "SEU_TOKEN_AQUI") {
+      console.warn('⚠️ INFINITE_PAY_TOKEN não configurado. Gerando link de simulação.');
+      const simulatedLink = `https://pay.infinitepay.io/sjmbetoneiras/${amountInCents}?metadata=${encodeURIComponent(JSON.stringify({order_id: order.id}))}`;
+      return res.json({ success: true, link: simulatedLink, orderId });
+    }
+
     const payload = {
       amount: amountInCents,
       order_id: orderId,
-      items: [
-        {
-          name: `Sinal 50% - ${product.name}`,
-          amount: amountInCents,
-          quantity: 1,
-          description: `Pedido SJM - Condição: ${paymentMethod}`
-        }
-      ],
+      items: [{
+        name: `Sinal 50% - ${product.name}`,
+        amount: amountInCents,
+        quantity: 1,
+        description: `Pedido SJM - Condição: ${paymentMethod}`
+      }],
       customer: {
         name: lead.name,
         phone: lead.phone.replace(/\D/g, ''),
@@ -74,16 +88,6 @@ app.post('/api/checkout/generate-link', async (req, res) => {
       }
     };
 
-    const token = process.env.INFINITE_PAY_TOKEN;
-    
-    // Fallback para simulação se o token não existir
-    if (!token || token === "SEU_TOKEN_AQUI") {
-      console.warn('⚠️ INFINITE_PAY_TOKEN não configurado. Gerando link de simulação.');
-      const simulatedLink = `https://pay.infinitepay.io/sjmbetoneiras/${amountInCents}?metadata=${encodeURIComponent(JSON.stringify(payload.metadata))}`;
-      return res.json({ success: true, link: simulatedLink, orderId });
-    }
-
-    // Chamada REAL para a API CloudWalk/InfinitePay
     const response = await axios.post(INFINITE_PAY_API_URL, payload, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -93,61 +97,53 @@ app.post('/api/checkout/generate-link', async (req, res) => {
 
     const finalLink = response.data.payment_url || response.data.url;
 
-    // Atualizar ordem com o link gerado
     await prisma.order.update({
       where: { id: order.id },
       data: { paymentUrl: finalLink }
     });
 
-    res.json({ 
-      success: true, 
-      link: finalLink, 
-      orderId: orderId 
-    });
+    res.json({ success: true, link: finalLink, orderId });
 
   } catch (error) {
-    console.error('❌ Erro InfinitePay:', error.response?.data || error.message);
+    console.error('❌ Erro no Servidor:', error.response?.data || error.message);
     res.status(500).json({ 
-      error: 'Erro ao processar checkout na InfinitePay',
+      error: 'Falha na comunicação com gateway de pagamento',
       details: error.response?.data || error.message 
     });
   }
 });
 
 /**
- * Endpoint de Webhook para confirmação de pagamento
+ * Webhook de Pagamento
  */
 app.post('/api/webhooks/infinitepay', async (req, res) => {
   const data = req.body;
-  
   try {
-    console.log('📬 Webhook recebido:', data.status, 'Order:', data.order_id);
+    console.log(`[WEBHOOK] Notificação recebida para OrderID: ${data.order_id} | Status: ${data.status}`);
 
     if (data.status === 'approved' || data.status === 'confirmed') {
-      // Atualizar status da ordem
       await prisma.order.update({
         where: { externalId: data.order_id },
         data: { status: 'paid' }
       });
 
-      // Se houver lead_id no metadata, atualizar o status do lead
       const leadId = data.metadata?.lead_id;
       if (leadId) {
         await prisma.lead.update({
           where: { id: leadId },
           data: { status: 'Vendido' }
         });
-        console.log(`✅ Lead ${leadId} convertido com sucesso!`);
       }
     }
-
     res.status(200).send('OK');
   } catch (error) {
-    console.error('❌ Erro no Webhook:', error.message);
+    console.error('[WEBHOOK ERROR]', error.message);
     res.status(500).send('Error');
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 SJM Backend pronto na porta ${PORT}`);
+  console.log(`\n🚀 SJM Backend Fullstack Ativo`);
+  console.log(`📍 Porta: ${PORT}`);
+  console.log(`🔗 Webhook: ${process.env.WEBHOOK_URL}\n`);
 });
