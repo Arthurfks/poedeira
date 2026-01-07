@@ -1,0 +1,64 @@
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String   @unique
+  status    String   @default("Novo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chats     Chat[]
+}
+
+model Chat {
+  id        String    @id @default(cuid())
+  leadId    String
+  lead      Lead      @relation(fields: [leadId], references: [id])
+  messages  Message[]
+  createdAt DateTime  @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  sender    String   // "user" or "ai"
+  text      String
+  type      String   // "text" or "audio"
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  price       Float
+  description String
+  image       String?
+  isActive    Boolean  @default(true)
+}
+
+model Marketing {
+  id              Int     @id @default(1)
+  fbPixelId       String?
+  googleTagId     String?
+  googleConvLead  String?
+  googleConvSale  String?
+}
+
+model Training {
+  id             String   @id @default(cuid())
+  activeScript   String?  // Roteiro se o lead ficar quieto
+  topics         Json?    // Array de tópicos FAQ
+  mediaUrls      Json?    // Array de URLs de fotos/vídeos de suporte
+}

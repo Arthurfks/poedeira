@@ -1,0 +1,7 @@
+{
+  "name": "Poedeira Master - Venda de Máquinas",
+  "description": "Plataforma completa para venda de máquinas poedeiras de blocos, com chat inteligente e painel administrativo robusto.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
