@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 model Lead {
@@ -19,6 +19,7 @@ model Lead {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   chats     Chat[]
+  orders    Order[]
 }
 
 model Chat {
@@ -46,6 +47,18 @@ model Product {
   description String
   image       String?
   isActive    Boolean  @default(true)
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  externalId    String   @unique // orderId gerado (ex: SJM-XXXX)
+  leadId        String
+  lead          Lead     @relation(fields: [leadId], references: [id])
+  amount        Int      // Valor em centavos
+  status        String   @default("pending")
+  paymentUrl    String?
+  metadata      String?  // JSON stringified
+  createdAt     DateTime @default(now())
 }
 
 model Marketing {
