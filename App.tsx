@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Page } from './types';
-import LandingPage from './views/LandingPage';
-import ChatView from './views/ChatView';
-import LoginView from './views/LoginView';
-import AdminDashboard from './views/AdminDashboard';
-import FloatingNav from './components/FloatingNav';
+import { Page } from './types.ts';
+import LandingPage from './views/LandingPage.tsx';
+import ChatView from './views/ChatView.tsx';
+import LoginView from './views/LoginView.tsx';
+import AdminDashboard from './views/AdminDashboard.tsx';
+import FloatingNav from './components/FloatingNav.tsx';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
@@ -32,11 +32,8 @@ const App: React.FC = () => {
       case 'chat':
         return <ChatView />;
       case 'login':
-        // Permite visualizar a tela de login mesmo se já estiver logado (para testes de UI)
         return <LoginView onLogin={handleLogin} />;
       case 'admin':
-        // Para fins de teste/visualização do front, permitimos ver o admin. 
-        // Em produção, isso seria protegido pelo estado isLoggedIn.
         return <AdminDashboard />;
       default:
         return <LandingPage 
@@ -48,7 +45,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen relative font-sans antialiased text-gray-900 overflow-x-hidden">
-      {/* Botão flutuante restaurado para navegação rápida entre telas durante o desenvolvimento */}
       <FloatingNav 
         currentPage={currentPage} 
         onNavigate={(page) => setCurrentPage(page)} 

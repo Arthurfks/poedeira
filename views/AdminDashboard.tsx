@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
-import { AdminTab } from '../types';
-import Sidebar from '../components/admin/Sidebar';
-import DashboardTab from './admin/DashboardTab';
-import LeadsTab from './admin/LeadsTab';
-import ChatsTab from './admin/ChatsTab';
-import ProductsTab from './admin/ProductsTab';
-import OrdersTab from './admin/OrdersTab';
-import MarketingTab from './admin/MarketingTab';
-import TrainingTab from './admin/TrainingTab';
-import SettingsTab from './admin/SettingsTab';
+import { AdminTab } from '../types.ts';
+import Sidebar from '../components/admin/Sidebar.tsx';
+import DashboardTab from './admin/DashboardTab.tsx';
+import LeadsTab from './admin/LeadsTab.tsx';
+import ChatsTab from './admin/ChatsTab.tsx';
+import ProductsTab from './admin/ProductsTab.tsx';
+import OrdersTab from './admin/OrdersTab.tsx';
+import MarketingTab from './admin/MarketingTab.tsx';
+import TrainingTab from './admin/TrainingTab.tsx';
+import SettingsTab from './admin/SettingsTab.tsx';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>('Dashboard');

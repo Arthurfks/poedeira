@@ -1,5 +1,5 @@
 
-import { Lead, Product, DashboardStats } from './types';
+import { Lead, Product, DashboardStats } from './types.ts';
 
 export const MOCK_LEADS: Lead[] = [
   { id: '1', name: 'Ricardo Silva', email: 'ricardo@email.com', phone: '11988887777', status: 'Novo', date: '2023-10-25' },
