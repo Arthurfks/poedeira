@@ -13,7 +13,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const prisma = new PrismaClient();
+
+// Inicialização segura do Prisma
+let prisma;
+try {
+  prisma = new PrismaClient();
+  console.log('💎 Prisma Client instanciado');
+} catch (e) {
+  console.error('⚠️ Falha ao iniciar Prisma. Verifique se rodou "npx prisma generate"');
+}
 
 const PORT = process.env.PORT || 3005;
 const INFINITE_PAY_API_URL = 'https://api.cloudwalk.io/v1/checkout';
@@ -21,21 +29,36 @@ const INFINITE_PAY_API_URL = 'https://api.cloudwalk.io/v1/checkout';
 app.use(cors());
 app.use(express.json());
 
-// 1. SERVIR ARQUIVOS ESTÁTICOS PRIMEIRO
-// Isso garante que index.tsx, App.tsx, etc., sejam encontrados
+/**
+ * Middleware para garantir que o navegador trate arquivos .tsx como JS
+ */
+app.use((req, res, next) => {
+  if (req.url.endsWith('.tsx') || req.url.endsWith('.ts')) {
+    res.setHeader('Content-Type', 'application/javascript');
+  }
+  next();
+});
+
+// Servir arquivos estáticos (Frontend)
 app.use(express.static(__dirname));
 
 /**
- * Health Check
+ * Health Check para monitoramento
  */
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'online', port: PORT });
+  res.json({ 
+    status: 'online', 
+    db: !!prisma,
+    timestamp: new Date().toISOString()
+  });
 });
 
 /**
  * Rota para Gerar Link de Checkout
  */
 app.post('/api/checkout/generate-link', async (req, res) => {
+  if (!prisma) return res.status(500).json({ error: 'Banco de dados não disponível' });
+
   try {
     const { lead, product, paymentMethod, amountInCents, orderId } = req.body;
 
@@ -94,18 +117,24 @@ app.post('/api/checkout/generate-link', async (req, res) => {
     res.json({ success: true, link: finalLink, orderId });
 
   } catch (error) {
-    console.error('❌ Erro Checkout:', error.message);
-    res.status(500).json({ error: 'Erro no gateway' });
+    console.error('❌ Erro no Checkout:', error.message);
+    res.status(500).json({ error: 'Falha ao processar checkout' });
   }
 });
 
 /**
- * 2. CAPTURA DE ROTAS DO REACT (Deve ser a ÚLTIMA coisa)
+ * SPA Catch-all: Redireciona tudo que não for API para o index.html
  */
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 SJM RODANDO NA PORTA ${PORT}`);
+  console.log(`
+  -------------------------------------------
+  🚀 SJM SISTEMA ATIVO
+  📍 Porta: ${PORT}
+  🌍 Site: https://poedeira.sjmbetoneiras.site
+  -------------------------------------------
+  `);
 });
